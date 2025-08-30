@@ -1,6 +1,8 @@
 #include <Arduino.h>
-#include <esp_now.h>
-#include <WiFi.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
 #define MOT_L_1_PIN D0
 #define MOT_L_2_PIN D1
@@ -9,6 +11,7 @@
 
 #define ENABLE_X_PIN  D2
 #define ENABLE_Y_PIN  D5
+
 
 typedef struct {
   int X, Y;
@@ -19,57 +22,59 @@ typedef struct {
   int droite;
 } moteur;
 
-volatile potValues joystick = {0, 0};   // volatile -> used in ISR/callback
+volatile potValues joystick = {0, 0};
 volatile moteur puissance = {0, 0};
+
+BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
 
 void writeSpeed();
 void convertDataToCommand(int X, int Y);
 
-// Callback when data is received
-void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
-  if (len == sizeof(joystick)) {
-    memcpy((void*)&joystick, incomingData, sizeof(joystick));
-    convertDataToCommand(joystick.X, joystick.Y);
-    writeSpeed();
+class MyCallbacks: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string rxValue = pCharacteristic->getValue();
+    if (rxValue.length() == sizeof(potValues)) {
+      memcpy((void*)&joystick, rxValue.data(), sizeof(potValues));
+      convertDataToCommand(joystick.X, joystick.Y);
+      writeSpeed();
+    }
   }
-}
+};
 
 void setup() {
   Serial.begin(115200);
 
-  // Minimal Wi-Fi init for ESP-NOW only
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true);   // saves power by avoiding AP scanning
-
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Erreur initialisation ESP-NOW");
-    ESP.restart();
-  }
-
-  esp_now_register_recv_cb(OnDataRecv);
-
   pinMode(MOT_L_1_PIN, OUTPUT);
-  pinMode(MOT_R_1_PIN, OUTPUT);
   pinMode(MOT_L_2_PIN, OUTPUT);
+  pinMode(MOT_R_1_PIN, OUTPUT);
   pinMode(MOT_R_2_PIN, OUTPUT);
-
-  // Motor driver enable pins
   pinMode(ENABLE_X_PIN, OUTPUT);
   pinMode(ENABLE_Y_PIN, OUTPUT);
-  digitalWrite(ENABLE_X_PIN, LOW); // start disabled
-  digitalWrite(ENABLE_Y_PIN, LOW);
+
+  // --- BLE init ---
+  BLEDevice::init("RC_Car");
+  BLEServer *pServer = BLEDevice::createServer();
+  BLEService *pService = pServer->createService("12345678-1234-1234-1234-1234567890ab");
+
+  pCharacteristic = pService->createCharacteristic(
+                      "abcdefab-1234-5678-1234-abcdefabcdef",
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+  pCharacteristic->setCallbacks(new MyCallbacks());
+
+  pService->start();
+  pServer->getAdvertising()->start();
+
+  Serial.println("Car ready, waiting for BLE controller...");
 }
 
 void loop() {
-  // Sleep to reduce CPU load when idle
   delay(200);
 }
 
-// ----------- Motor Functions -----------
-
 void writeSpeed() {
-  // If both motors are stopped, disable driver for power saving
-  if (puissance.gauche == 0 && puissance.droite == 0) {
+  if (abs(puissance.gauche) < 10 && abs(puissance.droite) < 10) {
     digitalWrite(ENABLE_X_PIN, LOW);
     digitalWrite(ENABLE_Y_PIN, LOW);
     return;
@@ -98,8 +103,6 @@ void writeSpeed() {
 }
 
 void convertDataToCommand(int X, int Y) {
-  // Approximation avoids sqrtf + atan2f (heavy floating point!)
-  // Simple mix: forward/backward = Y, turn = X
   puissance.gauche = constrain(Y + X, -255, 255);
   puissance.droite = constrain(Y - X, -255, 255);
 }
