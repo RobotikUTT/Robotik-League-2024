@@ -11,41 +11,41 @@
 #define ENABLE_Y_PIN  D5
 
 typedef struct {
-  int X = 0, Y = 0;
+  int X, Y;
 } potValues;
 
 typedef struct {
-  int gauche = 0;
-  int droite = 0;
+  int gauche;
+  int droite;
 } moteur;
 
-potValues joystick;
-moteur puissance;
+volatile potValues joystick = {0, 0};   // volatile -> used in ISR/callback
+volatile moteur puissance = {0, 0};
 
 void writeSpeed();
-void convertDataToCommand(float X, float Y);
+void convertDataToCommand(int X, int Y);
 
 // Callback when data is received
 void OnDataRecv(const uint8_t* mac, const uint8_t* incomingData, int len) {
-  if (len == sizeof(joystick)) {  // Check data length to avoid errors
-    memcpy(&joystick, incomingData, sizeof(joystick));
-  } else {
-    Serial.println("Taille inattendue des données reçues");
+  if (len == sizeof(joystick)) {
+    memcpy((void*)&joystick, incomingData, sizeof(joystick));
+    convertDataToCommand(joystick.X, joystick.Y);
+    writeSpeed();
   }
-  convertDataToCommand(joystick.X, joystick.Y);
-  writeSpeed();
 }
 
 void setup() {
   Serial.begin(115200);
+
+  // Minimal Wi-Fi init for ESP-NOW only
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true);   // saves power by avoiding AP scanning
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("Erreur initialisation ESP-NOW");
-    return;
+    ESP.restart();
   }
 
-  // Register the receive callback function
   esp_now_register_recv_cb(OnDataRecv);
 
   pinMode(MOT_L_1_PIN, OUTPUT);
@@ -53,60 +53,53 @@ void setup() {
   pinMode(MOT_L_2_PIN, OUTPUT);
   pinMode(MOT_R_2_PIN, OUTPUT);
 
-  // Enable motor drivers
+  // Motor driver enable pins
   pinMode(ENABLE_X_PIN, OUTPUT);
   pinMode(ENABLE_Y_PIN, OUTPUT);
-  digitalWrite(ENABLE_X_PIN, HIGH); // Enable motor X
-  digitalWrite(ENABLE_Y_PIN, HIGH); // Enable motor Y
+  digitalWrite(ENABLE_X_PIN, LOW); // start disabled
+  digitalWrite(ENABLE_Y_PIN, LOW);
 }
 
 void loop() {
-  Serial.print("X : ");
-  Serial.print(joystick.X);
-  Serial.print("\t");
-  Serial.print("Y : ");
-  Serial.print(joystick.Y);
-  Serial.print("\t");
-  Serial.print("Droite : ");
-  Serial.print(puissance.droite);
-  Serial.print("\t");
-  Serial.print("Gauche : ");
-  Serial.println(puissance.gauche);
+  // Sleep to reduce CPU load when idle
+  delay(200);
 }
 
-void writeSpeed(){
-  // Left motor control
-  if(puissance.gauche > 0){
-    analogWrite(MOT_L_1_PIN, puissance.gauche);  // Forward
+// ----------- Motor Functions -----------
+
+void writeSpeed() {
+  // If both motors are stopped, disable driver for power saving
+  if (puissance.gauche == 0 && puissance.droite == 0) {
+    digitalWrite(ENABLE_X_PIN, LOW);
+    digitalWrite(ENABLE_Y_PIN, LOW);
+    return;
+  } else {
+    digitalWrite(ENABLE_X_PIN, HIGH);
+    digitalWrite(ENABLE_Y_PIN, HIGH);
+  }
+
+  // Left motor
+  if (puissance.gauche > 0) {
+    analogWrite(MOT_L_1_PIN, puissance.gauche);
     analogWrite(MOT_L_2_PIN, 0);
   } else {
     analogWrite(MOT_L_1_PIN, 0);
-    analogWrite(MOT_L_2_PIN, abs(puissance.gauche));  // Reverse
+    analogWrite(MOT_L_2_PIN, -puissance.gauche);
   }
 
-  // Right motor control
-  if(puissance.droite > 0){
-    analogWrite(MOT_R_1_PIN, puissance.droite);  // Forward
+  // Right motor
+  if (puissance.droite > 0) {
+    analogWrite(MOT_R_1_PIN, puissance.droite);
     analogWrite(MOT_R_2_PIN, 0);
   } else {
     analogWrite(MOT_R_1_PIN, 0);
-    analogWrite(MOT_R_2_PIN, abs(puissance.droite));  // Reverse
+    analogWrite(MOT_R_2_PIN, -puissance.droite);
   }
 }
 
-
-void convertDataToCommand(float X, float Y) {
-  // Calculate total power (magnitude)
-  float power = sqrtf(X * X + Y * Y);
-
-  // Calculate angle in radians
-  float angle = atan2f(Y, X);
-
-  // Left and right power based on joystick angle
-  puissance.gauche = (int)(power * sinf(angle + PI / 4));
-  puissance.droite = (int)(power * sinf(angle - PI / 4));
-
-  // Ensure power is within valid range for PWM (0 to 255)
-  puissance.gauche = constrain(puissance.gauche, -255, 255);
-  puissance.droite = constrain(puissance.droite, -255, 255);
+void convertDataToCommand(int X, int Y) {
+  // Approximation avoids sqrtf + atan2f (heavy floating point!)
+  // Simple mix: forward/backward = Y, turn = X
+  puissance.gauche = constrain(Y + X, -255, 255);
+  puissance.droite = constrain(Y - X, -255, 255);
 }
