@@ -22,14 +22,14 @@ void setup(){
  
 
 void loop(){
-  digitalWrite(R_PIN, HIGH);
-  digitalWrite(B_PIN, LOW);
-  delay(1000);
-  digitalWrite(G_PIN, HIGH);
-  digitalWrite(R_PIN, LOW);
-  delay(1000);
+  digitalWrite(R_PIN, LOW); // leds activés à l'état bas
   digitalWrite(B_PIN, HIGH);
+  delay(1000);
   digitalWrite(G_PIN, LOW);
+  digitalWrite(R_PIN, HIGH);
+  delay(1000);
+  digitalWrite(B_PIN, LOW);
+  digitalWrite(G_PIN, HIGH);
   delay(1000);
 
 }
