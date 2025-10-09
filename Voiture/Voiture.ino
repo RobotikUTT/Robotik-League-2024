@@ -10,6 +10,8 @@
 #define ENABLE_X_PIN  D2
 #define ENABLE_Y_PIN  D5
 
+#define ZONE_MORTE 20
+
 typedef struct {
   int X, Y;
 } potValues;
@@ -21,6 +23,7 @@ typedef struct {
 
 volatile potValues joystick = {0, 0};   // volatile -> used in ISR/callback
 volatile moteur puissance = {0, 0};
+volatile uint8_t flag_com;
 
 void writeSpeed();
 void convertDataToCommand(int X, int Y);
@@ -32,6 +35,7 @@ void OnDataRecv(const esp_now_recv_info* mac, const uint8_t* incomingData, int l
     convertDataToCommand(joystick.X, joystick.Y);
     writeSpeed();
     Serial.println("marche normalement askip");
+    flag_com = 1;
   }else{
     Serial.println("marche presque");
   }
@@ -66,6 +70,12 @@ void setup() {
 void loop() {
   // Sleep to reduce CPU load when idle
   delay(200);
+  if(!flag_com){
+    puissance.gauche = 0;
+    puissance.droite = 0;
+    writeSpeed();
+  }
+  flag_com = 0;
   /*puissance.gauche = 250;
   puissance.droite = 250;
   writeSpeed();
@@ -83,7 +93,7 @@ void loop() {
 
 void writeSpeed() {
   // If both motors are stopped, disable driver for power saving
-  if (puissance.gauche == 0 && puissance.droite == 0) {
+  if (puissance.gauche > -ZONE_MORTE && puissance.gauche < ZONE_MORTE && puissance.droite > -ZONE_MORTE && puissance.droite < ZONE_MORTE) {
     digitalWrite(ENABLE_X_PIN, LOW);
     digitalWrite(ENABLE_Y_PIN, LOW);
     return;

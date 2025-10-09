@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 // Car MAC address
-uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0x94, 0x58};
+uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0xDD, 0x54};
 
 #define POT_X_PIN A0
 #define POT_Y_PIN A1
