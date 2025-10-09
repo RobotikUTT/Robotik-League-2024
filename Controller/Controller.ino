@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 // Car MAC address
-uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0x94, 0x68};
+uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0xDD, 0x54};
 
 #define POT_X_PIN A0
 #define POT_Y_PIN A1
@@ -28,7 +28,7 @@ esp_now_peer_info_t peerInfo;
 unsigned long lastSend = 0;
 const unsigned long SEND_INTERVAL = 100; // ms (10 Hz update rate)
 
-bool connected = false;
+volatile bool connected = false;
 
 // ---------------- ESP-NOW callbacks ----------------
 
@@ -37,13 +37,22 @@ void OnDataSent(const wifi_tx_info_t *mac_addr, esp_now_send_status_t status) {
     if (!connected) {
       connected = true;
       Serial.println("Car connected ✅");
-      analogWrite(G_PIN, 255); // Green LED = connected
+      analogWrite(G_PIN, 200); // Green LED = connected
+      analogWrite(R_PIN, 255);
+      analogWrite(B_PIN, 255);
+    }else{
+      delay(100);                                               // attention à ce delay la il peut être chiant
+      analogWrite(G_PIN, 255); // éteint la led au prochain passage
+      analogWrite(R_PIN, 255);
+      analogWrite(B_PIN, 255);
     }
   } else {
     if (connected) {
       connected = false;
       Serial.println("Car disconnected ❌");
-      analogWrite(R_PIN, 255); // Red LED = disconnected
+      analogWrite(R_PIN, 200); // Red LED = disconnected
+      analogWrite(G_PIN, 255);
+      analogWrite(B_PIN, 255);
     }
   }
 }
@@ -61,9 +70,9 @@ void setup() {
   pinMode(B_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  analogWrite(R_PIN, 128); // Red = searching
-  analogWrite(G_PIN, 0);
-  analogWrite(B_PIN, 0);
+  analogWrite(R_PIN, 255);
+  analogWrite(G_PIN, 255);
+  analogWrite(B_PIN, 200);  // blue: searching
 
   // Init WiFi only for ESP-NOW
   WiFi.mode(WIFI_STA);
@@ -123,7 +132,9 @@ void loop() {
 
     if (result != ESP_OK) {
       Serial.println("Send error ❌");
-      analogWrite(R_PIN, 255);
+      analogWrite(R_PIN, 200);
+      analogWrite(G_PIN, 255);
+      analogWrite(B_PIN, 255);
     }
   }
 
