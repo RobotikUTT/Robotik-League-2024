@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 // Car MAC address
-uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0xDD, 0x54};
+uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0x94, 0x68};
 
 #define POT_X_PIN A0
 #define POT_Y_PIN A1
@@ -26,7 +26,7 @@ potValues joystick;
 esp_now_peer_info_t peerInfo;
 
 unsigned long lastSend = 0;
-const unsigned long SEND_INTERVAL = 20; // ms (50 Hz update rate)
+const unsigned long SEND_INTERVAL = 100; // ms (10 Hz update rate)
 
 bool connected = false;
 
@@ -87,6 +87,13 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
 
   Serial.println("Controller ready 🎮");
+  delay(1000); //pour que ça s'affiche quand tu le branche, l'IDE Arduino est trop lent
+  Serial.print("send data to : ");
+  for (int i = 0; i < 6; i++) {
+    Serial.print(", 0x");
+    Serial.print(connectedAddress[i],HEX);
+  }
+  Serial.println();
 }
 
 // ---------------- Main loop ----------------

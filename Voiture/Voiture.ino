@@ -10,6 +10,10 @@
 #define ENABLE_X_PIN  D2
 #define ENABLE_Y_PIN  D5
 
+#define R_PIN D9
+#define G_PIN D8
+#define B_PIN D7
+
 #define ZONE_MORTE 20
 
 typedef struct {
@@ -65,6 +69,10 @@ void setup() {
   pinMode(ENABLE_Y_PIN, OUTPUT);
   digitalWrite(ENABLE_X_PIN, LOW); // start disabled
   digitalWrite(ENABLE_Y_PIN, LOW);
+
+  delay(2000);  //pour que ça s'affiche quand tu le branche l'IDE Arduino est trop lent
+  Serial.print("mon adresse mac : ");
+  Serial.println(WiFi.macAddress());
 }
 
 void loop() {
