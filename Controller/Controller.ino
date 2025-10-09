@@ -3,7 +3,7 @@
 #include <WiFi.h>
 
 // Car MAC address
-uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0xC2, 0xA8};
+uint8_t connectedAddress[6] = {0x64, 0xE8, 0x33, 0x89, 0x94, 0x58};
 
 #define POT_X_PIN A0
 #define POT_Y_PIN A1
@@ -67,7 +67,7 @@ void setup() {
 
   // Init WiFi only for ESP-NOW
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect(true); // prevent scanning → save power
+  //WiFi.disconnect(true); // prevent scanning → save power
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("ESP-NOW init failed");
@@ -121,5 +121,5 @@ void loop() {
   }
 
   // Short idle sleep to reduce CPU load
-  delay(1);
+  delay(20);
 }
