@@ -40,9 +40,9 @@ void OnDataRecv(const esp_now_recv_info* mac, const uint8_t* incomingData, int l
     writeSpeed();
     Serial.println("marche normalement askip");
     flag_com = true;
-    analogWrite(R_PIN, 255);
+    /*analogWrite(R_PIN, 255);
     analogWrite(G_PIN, 200); // ça roule
-    analogWrite(B_PIN, 255);
+    analogWrite(B_PIN, 255);*/
   }else{
     Serial.println("marche presque");
   }
@@ -67,9 +67,9 @@ void setup() {
   pinMode(MOT_L_2_PIN, OUTPUT);
   pinMode(MOT_R_2_PIN, OUTPUT);
 
-  pinMode(R_PIN, OUTPUT);
+  /*pinMode(R_PIN, OUTPUT);
   pinMode(G_PIN, OUTPUT);
-  pinMode(B_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);*/
   
   // Motor driver enable pins
   pinMode(ENABLE_X_PIN, OUTPUT);
@@ -89,9 +89,9 @@ void loop() {
     puissance.gauche = 0;
     puissance.droite = 0;
     writeSpeed();
-    analogWrite(R_PIN, 200); //plus de com
+    /*analogWrite(R_PIN, 200); //plus de com
     analogWrite(G_PIN, 255);
-    analogWrite(B_PIN, 255);
+    analogWrite(B_PIN, 255);*/
   }
   flag_com = false;
   /*puissance.gauche = 250;
