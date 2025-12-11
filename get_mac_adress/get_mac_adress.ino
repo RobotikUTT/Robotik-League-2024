@@ -4,32 +4,47 @@
 #define G_PIN D8
 #define B_PIN D7
 
+#define POT_X_PIN A0
+#define POT_Y_PIN A1
+#define BUTTON_PIN D10
+
 
 void setup(){
 
   pinMode(R_PIN, OUTPUT);
   pinMode(G_PIN, OUTPUT);
   pinMode(B_PIN, OUTPUT);
+  pinMode(POT_X_PIN, INPUT);
+  pinMode(POT_Y_PIN, INPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
   Serial.begin(115200);
 
   WiFi.mode(WIFI_MODE_STA);
 
   Serial.println(WiFi.macAddress());
-
+  analogReadResolution(9);
 
 }
 
- 
 
 void loop(){
   digitalWrite(R_PIN, LOW); // leds activés à l'état bas
   digitalWrite(B_PIN, HIGH);
-  delay(1000);
+  delay(100);
   digitalWrite(G_PIN, LOW);
   digitalWrite(R_PIN, HIGH);
-  delay(1000);
+  delay(100);
   digitalWrite(B_PIN, LOW);
   digitalWrite(G_PIN, HIGH);
-  delay(1000);
+  delay(100);
+  int pot_X = analogRead(POT_X_PIN);
+  int pot_Y = analogRead(POT_Y_PIN);
+  Serial.print("valeur X : ");
+  Serial.println(pot_X);
+  Serial.print("valeur Y : ");
+  Serial.println(pot_Y);
+  Serial.print("pot : ");
+  Serial.println(digitalRead(BUTTON_PIN));
+
 
 }

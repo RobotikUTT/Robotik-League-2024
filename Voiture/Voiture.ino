@@ -7,17 +7,17 @@
 #define MOT_R_1_PIN D3
 #define MOT_R_2_PIN D4
 
-#define ENABLE_X_PIN  D2
-#define ENABLE_Y_PIN  D5
+#define ENABLE_X_PIN D2
+#define ENABLE_Y_PIN D5
 
 #define R_PIN D9
 #define G_PIN D8
 #define B_PIN D7
 
-#define ZONE_MORTE 20
+#define PUISSANCE_MIN 127
 
 typedef struct {
-  int X, Y;
+  int8_t X, Y;
 } potValues;
 
 typedef struct {
@@ -25,25 +25,23 @@ typedef struct {
   int droite;
 } moteur;
 
-volatile potValues joystick = {0, 0};   // volatile -> used in ISR/callback
-volatile moteur puissance = {0, 0};
+volatile potValues joystick = { 0, 0 };  // volatile -> used in ISR/callback
+volatile moteur puissance = { 0, 0 };
 volatile bool flag_com = false;
 
-void writeSpeed();
-void convertDataToCommand(int X, int Y);
+void writeSpeed(int8_t X, int8_t Y);
 
 // Callback when data is received
 void OnDataRecv(const esp_now_recv_info* mac, const uint8_t* incomingData, int len) {
   if (len == sizeof(joystick)) {
     memcpy((void*)&joystick, incomingData, sizeof(joystick));
-    convertDataToCommand(joystick.X, joystick.Y);
-    writeSpeed();
+    writeSpeed(joystick.X, joystick.Y);
     Serial.println("marche normalement askip");
     flag_com = true;
     /*analogWrite(R_PIN, 255);
     analogWrite(G_PIN, 200); // ça roule
     analogWrite(B_PIN, 255);*/
-  }else{
+  } else {
     Serial.println("marche presque");
   }
 }
@@ -70,11 +68,11 @@ void setup() {
   /*pinMode(R_PIN, OUTPUT);
   pinMode(G_PIN, OUTPUT);
   pinMode(B_PIN, OUTPUT);*/
-  
+
   // Motor driver enable pins
   pinMode(ENABLE_X_PIN, OUTPUT);
   pinMode(ENABLE_Y_PIN, OUTPUT);
-  digitalWrite(ENABLE_X_PIN, LOW); // start disabled
+  digitalWrite(ENABLE_X_PIN, LOW);  // start disabled
   digitalWrite(ENABLE_Y_PIN, LOW);
 
   delay(2000);  //pour que ça s'affiche quand tu le branche l'IDE Arduino est trop lent
@@ -83,12 +81,9 @@ void setup() {
 }
 
 void loop() {
-  // Sleep to reduce CPU load when idle
-  delay(200);
-  if(!flag_com){
-    puissance.gauche = 0;
-    puissance.droite = 0;
-    writeSpeed();
+  delay(300);
+  if (!flag_com) {
+    writeSpeed(0, 0);
     /*analogWrite(R_PIN, 200); //plus de com
     analogWrite(G_PIN, 255);
     analogWrite(B_PIN, 255);*/
@@ -109,9 +104,9 @@ void loop() {
 
 // ----------- Motor Functions -----------
 
-void writeSpeed() {
+void writeSpeed(int8_t X, int8_t Y) {
   // If both motors are stopped, disable driver for power saving
-  if (puissance.gauche > -ZONE_MORTE && puissance.gauche < ZONE_MORTE && puissance.droite > -ZONE_MORTE && puissance.droite < ZONE_MORTE) {
+  if (X == 0 && Y == 0) {
     digitalWrite(ENABLE_X_PIN, LOW);
     digitalWrite(ENABLE_Y_PIN, LOW);
     return;
@@ -120,28 +115,47 @@ void writeSpeed() {
     digitalWrite(ENABLE_Y_PIN, HIGH);
   }
 
-  // Left motor
-  if (puissance.gauche > 0) {
-    analogWrite(MOT_L_1_PIN, puissance.gauche);
-    analogWrite(MOT_L_2_PIN, 0);
+  if (Y > 0) {    //forward
+    if (X > 0) {  //right
+      analogWrite(MOT_L_1_PIN, Y + X);
+      analogWrite(MOT_L_2_PIN, 0);
+
+      analogWrite(MOT_R_1_PIN, Y - X);
+      analogWrite(MOT_R_2_PIN, 0);
+    } else {  //left
+      if (X < 0) {
+        analogWrite(MOT_L_1_PIN, Y + X);
+        analogWrite(MOT_L_2_PIN, 0);
+
+        analogWrite(MOT_R_1_PIN, Y - X);
+        analogWrite(MOT_R_2_PIN, 0);
+      } else {  //full forward
+        analogWrite(MOT_L_1_PIN, Y + PUISSANCE_MIN);
+        analogWrite(MOT_L_2_PIN, 0);
+
+        analogWrite(MOT_R_1_PIN, Y + PUISSANCE_MIN);
+        analogWrite(MOT_R_2_PIN, 0);
+      }
+    }
+
   } else {
-    analogWrite(MOT_L_1_PIN, 0);
-    analogWrite(MOT_L_2_PIN, -puissance.gauche);
+    if (Y < 0) {  //backward
+
+    }
   }
 
   // Right motor
   if (puissance.droite > 0) {
-    analogWrite(MOT_R_1_PIN, puissance.droite);
+    analogWrite(MOT_R_1_PIN, puissance.droite + PUISSANCE_MIN);
     analogWrite(MOT_R_2_PIN, 0);
   } else {
     analogWrite(MOT_R_1_PIN, 0);
-    analogWrite(MOT_R_2_PIN, -puissance.droite);
+    analogWrite(MOT_R_2_PIN, -puissance.droite + PUISSANCE_MIN);
   }
 }
 
-void convertDataToCommand(int X, int Y) {
-  // Approximation avoids sqrtf + atan2f (heavy floating point!)
+void convertDataToCommand() {
   // Simple mix: forward/backward = Y, turn = X
-  puissance.gauche = constrain(Y + X, -255, 255);
-  puissance.droite = constrain(Y - X, -255, 255);
+  puissance.gauche = Y + X;
+  puissance.droite = Y - X;
 }
