@@ -81,13 +81,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
   //WiFi.disconnect(true); // prevent scanning → save power
 
-  if(Serial.isConnected()){
-    analogWrite(R_PIN, 200);
-    analogWrite(G_PIN, 255);
-    analogWrite(B_PIN, 200);
-  }
   
-  setCpuFrequencyMhz(80);
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("ESP-NOW init failed");
@@ -115,6 +109,14 @@ void setup() {
   }
   Serial.println();
   analogReadResolution(9);
+  
+  if(Serial.isConnected()){
+    analogWrite(R_PIN, 200);
+    analogWrite(G_PIN, 255);
+    analogWrite(B_PIN, 200);
+  }
+  
+  setCpuFrequencyMhz(80);
 }
 
 // ---------------- Main loop ----------------

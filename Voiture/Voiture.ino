@@ -114,48 +114,24 @@ void writeSpeed(int8_t X, int8_t Y) {
     digitalWrite(ENABLE_X_PIN, HIGH);
     digitalWrite(ENABLE_Y_PIN, HIGH);
   }
-
-  if (Y > 0) {    //forward
-    if (X > 0) {  //right
-      analogWrite(MOT_L_1_PIN, Y + X);
-      analogWrite(MOT_L_2_PIN, 0);
-
-      analogWrite(MOT_R_1_PIN, Y - X);
-      analogWrite(MOT_R_2_PIN, 0);
-    } else {  //left
-      if (X < 0) {
-        analogWrite(MOT_L_1_PIN, Y + X);
-        analogWrite(MOT_L_2_PIN, 0);
-
-        analogWrite(MOT_R_1_PIN, Y - X);
-        analogWrite(MOT_R_2_PIN, 0);
-      } else {  //full forward
-        analogWrite(MOT_L_1_PIN, Y + PUISSANCE_MIN);
-        analogWrite(MOT_L_2_PIN, 0);
-
-        analogWrite(MOT_R_1_PIN, Y + PUISSANCE_MIN);
-        analogWrite(MOT_R_2_PIN, 0);
-      }
-    }
-
-  } else {
-    if (Y < 0) {  //backward
-
-    }
-  }
+  puissance.gauche = Y + X; //simple mix 127+127 = 254
+  puissance.droite = Y - X;
 
   // Right motor
   if (puissance.droite > 0) {
-    analogWrite(MOT_R_1_PIN, puissance.droite + PUISSANCE_MIN);
+    analogWrite(MOT_R_1_PIN, puissance.droite);
     analogWrite(MOT_R_2_PIN, 0);
   } else {
     analogWrite(MOT_R_1_PIN, 0);
-    analogWrite(MOT_R_2_PIN, -puissance.droite + PUISSANCE_MIN);
+    analogWrite(MOT_R_2_PIN, -puissance.droite);
   }
-}
 
-void convertDataToCommand() {
-  // Simple mix: forward/backward = Y, turn = X
-  puissance.gauche = Y + X;
-  puissance.droite = Y - X;
+  // Left motor
+  if (puissance.gauche > 0) {
+    analogWrite(MOT_R_1_PIN, puissance.gauche);
+    analogWrite(MOT_R_2_PIN, 0);
+  } else {
+    analogWrite(MOT_R_1_PIN, 0);
+    analogWrite(MOT_R_2_PIN, -puissance.gauche);
+  }
 }
