@@ -114,24 +114,30 @@ void writeSpeed(int8_t X, int8_t Y) {
     digitalWrite(ENABLE_X_PIN, HIGH);
     digitalWrite(ENABLE_Y_PIN, HIGH);
   }
-  puissance.gauche = Y + X; //simple mix 127+127 = 254
-  puissance.droite = Y - X;
+  if(Y == 0){
+    puissance.gauche = X * 2;
+    puissance.droite = - X * 2;
+  }else{
+    puissance.gauche = Y + X; //simple mix 127+127 = 254
+    puissance.droite = Y - X;
+  }
+  
 
   // Right motor
   if (puissance.droite > 0) {
-    analogWrite(MOT_R_1_PIN, puissance.droite);
-    analogWrite(MOT_R_2_PIN, 0);
-  } else {
     analogWrite(MOT_R_1_PIN, 0);
-    analogWrite(MOT_R_2_PIN, -puissance.droite);
+    analogWrite(MOT_R_2_PIN, puissance.droite);
+  } else {
+    analogWrite(MOT_R_1_PIN, -puissance.droite);
+    analogWrite(MOT_R_2_PIN, 0);
   }
 
   // Left motor
   if (puissance.gauche > 0) {
-    analogWrite(MOT_R_1_PIN, puissance.gauche);
-    analogWrite(MOT_R_2_PIN, 0);
+    analogWrite(MOT_L_1_PIN, puissance.gauche);
+    analogWrite(MOT_L_2_PIN, 0);
   } else {
-    analogWrite(MOT_R_1_PIN, 0);
-    analogWrite(MOT_R_2_PIN, -puissance.gauche);
+    analogWrite(MOT_L_1_PIN, 0);
+    analogWrite(MOT_L_2_PIN, -puissance.gauche);
   }
 }

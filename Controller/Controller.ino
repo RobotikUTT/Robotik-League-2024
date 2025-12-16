@@ -129,6 +129,7 @@ void loop() {
   if(Serial.isConnected()){
    delay(100);
    Serial.println("connected");
+   
   }else{
      // Configuration du timer de réveil
   esp_sleep_enable_timer_wakeup(100 * 1000);  // 500 ms en microsecondes
@@ -142,10 +143,10 @@ void loop() {
   int pot_X = analogRead(POT_X_PIN) - ADC_CENTER;
   int pot_Y = analogRead(POT_Y_PIN) - ADC_CENTER;
   if (pot_X > -ZONE_MORTE && pot_X < ZONE_MORTE && pot_Y > -ZONE_MORTE && pot_Y < ZONE_MORTE) {
-    sent = false;
-    analogWrite(R_PIN, 240);
-    analogWrite(G_PIN, 240);
-    analogWrite(B_PIN, 240);
+    sent = true;
+    /*analogWrite(R_PIN, 250);
+    analogWrite(G_PIN, 250);
+    analogWrite(B_PIN, 250);*/
   } else {
     if (pot_X < -ZONE_MORTE) {
       pot_X += ZONE_MORTE;
